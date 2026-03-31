@@ -3,192 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Beat Battle: TC Core vs TC Classic</title>
+    <title>TC Battle: Music Edition</title>
     <style>
         * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
-        body { margin: 0; background: #050505; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: 'Arial Black', sans-serif; }
-        #wrapper { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        canvas { border: 2px solid #333; background: radial-gradient(circle, #222 0%, #000 100%); max-width: 100%; max-height: 80vh; object-fit: contain; }
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: 'Arial Black', sans-serif; }
         
-        /* Interfejs UI */
-        .ui { position: absolute; top: 10%; width: 90%; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
-        .vibe-bar { width: 35%; height: 20px; background: rgba(255,255,255,0.1); border: 2px solid #fff; position: relative; }
-        .vibe-fill { height: 100%; width: 100%; transition: width 0.2s; }
-        #playerVibe { background: linear-gradient(90deg, #ff4e00, #ec9f05); box-shadow: 0 0 15px #ff4e00; }
-        #enemyVibe { background: linear-gradient(90deg, #00d2ff, #3a7bd5); box-shadow: 0 0 15px #00d2ff; }
-        .name { text-transform: uppercase; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 5px #000; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        #start-btn { padding: 20px 50px; font-size: 24px; background: #ffbb00; border: none; border-radius: 10px; cursor: pointer; color: black; font-weight: bold; box-shadow: 0 0 30px #ffbb00; margin-top: 20px; }
         
-        /* Przyciski mobilne */
-        #controls { position: absolute; bottom: 5%; width: 90%; display: flex; justify-content: space-between; z-index: 20; }
-        .btn-group { display: flex; gap: 20px; }
-        .touch-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.4); border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; font-size: 35px; touch-action: manipulation; }
-        .touch-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.9); }
-        #btn-attack { border-color: #ffbb00; color: #ffbb00; font-size: 45px; }
-        #btn-jump { border-color: #00e1ff; color: #00e1ff; }
+        #wrapper { position: relative; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; }
+        canvas { background: #050505; max-width: 100%; max-height: 80vh; border: 2px solid #333; }
+        
+        .ui { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; z-index: 10; }
+        .vibe-bar { width: 40%; height: 20px; background: #111; border: 2px solid #fff; }
+        .fill { height: 100%; width: 100%; transition: 0.3s; }
+
+        #controls { position: absolute; bottom: 30px; width: 90%; display: flex; justify-content: space-between; z-index: 20; }
+        .btn-group { display: flex; gap: 15px; }
+        .touch-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.1); border: 3px solid rgba(255,255,255,0.5); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 40px; color: white; }
     </style>
 </head>
 <body>
 
+    <div id="overlay">
+        <h1 style="color:#ffbb00; font-size: 40px;">TC BATTLE</h1>
+        <p>MUZYKA: NARKORAPCORE</p>
+        <button id="start-btn">ODPALAJ BITWĘ!</button>
+    </div>
+
     <div id="wrapper">
         <div class="ui">
-            <div>
-                <div class="name">TC CORE</div>
-                <div class="vibe-bar"><div id="playerVibe" class="vibe-fill"></div></div>
-            </div>
-            <div>
-                <div class="name" style="text-align: right;">TC CLASSIC</div>
-                <div class="vibe-bar"><div id="enemyVibe" class="vibe-fill"></div></div>
-            </div>
+            <div class="vibe-bar"><div id="p1-vibe" class="fill" style="background: #ffbb00;"></div></div>
+            <div class="vibe-bar"><div id="p2-vibe" class="fill" style="background: #00e1ff;"></div></div>
         </div>
-
         <canvas id="gameCanvas"></canvas>
-        
         <div id="controls">
             <div class="btn-group">
                 <div class="touch-btn" id="btn-left">◀</div>
                 <div class="touch-btn" id="btn-right">▶</div>
             </div>
             <div class="btn-group">
-                <div class="touch-btn" id="btn-jump">↑</div>
-                <div class="touch-btn" id="btn-attack">♪</div>
+                <div class="touch-btn" id="btn-jump" style="color:#00e1ff">↑</div>
+                <div class="touch-btn" id="btn-attack" style="color:#ffbb00">♪</div>
             </div>
         </div>
     </div>
 
+    <audio id="bgMusic" loop>
+        <source src="narkorapcore.wav" type="audio/wav">
+    </audio>
+
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const music = document.getElementById('bgMusic');
+canvas.width = 1024; canvas.height = 576;
 
-canvas.width = 1024;
-canvas.height = 576;
+const imgCore = new Image(); imgCore.src = 'corepxl.jpeg';
+const imgClassic = new Image(); imgClassic.src = 'classicpxr.jpeg';
 
-const gravity = 0.8;
-let gameActive = true;
+let p1 = { x: 100, y: 220, vy: 0, vibe: 100, atk: false };
+let p2 = { x: 700, y: 220, vy: 0, vibe: 100 };
+let keys = { l: false, r: false };
 
-// LINKI Z TWOJEGO SERWERA (Imgur)
-const imgCore = new Image();
-imgCore.src = 'https://i.imgur.com/vH9Z9T4.png'; // TC CORE (Ogień)
+document.getElementById('start-btn').onclick = () => {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('wrapper').style.display = 'flex';
+    music.play();
+    update();
+};
 
-const imgClassic = new Image();
-imgClassic.src = 'https://i.imgur.com/e8uMhRk.png'; // TC CLASSIC (Lód)
-
-class Particle {
-    constructor(x, y, color) {
-        this.x = x; this.y = y;
-        this.vel = { x: (Math.random()-0.5)*12, y: -Math.random()*15 };
-        this.symbols = ['♪', '♫', '♭', '♯'];
-        this.s = this.symbols[Math.floor(Math.random()*4)];
-        this.life = 1.0; this.color = color;
-    }
-    draw() {
-        ctx.globalAlpha = this.life;
-        ctx.fillStyle = this.color;
-        ctx.font = '40px Arial';
-        ctx.fillText(this.s, this.x, this.y);
-        ctx.globalAlpha = 1;
-    }
-    update() { this.x += this.vel.x; this.y += this.vel.y; this.vel.y += 0.5; this.life -= 0.02; }
-}
-
-let particles = [];
-
-class Fighter {
-    constructor({ pos, img, color, side }) {
-        this.pos = pos; this.vel = {x:0, y:0};
-        this.img = img; this.color = color;
-        this.w = 220; this.h = 350;
-        this.vibe = 100; this.isAtk = false;
-        this.side = side;
-    }
-    draw() {
-        ctx.drawImage(this.img, this.pos.x, this.pos.y, this.w, this.h);
-        if (this.isAtk) {
-            ctx.fillStyle = this.color;
-            ctx.shadowBlur = 20; ctx.shadowColor = this.color;
-            ctx.fillRect(this.pos.x + (this.side === 'L' ? 150 : -50), this.pos.y + 120, 120, 80);
-            ctx.shadowBlur = 0;
-        }
-    }
-    update() {
-        this.draw();
-        this.pos.x += this.vel.x; this.pos.y += this.vel.y;
-        if (this.pos.y + this.h + this.vel.y >= canvas.height - 20) this.vel.y = 0;
-        else this.vel.y += gravity;
-    }
-}
-
-const player = new Fighter({ pos:{x:100, y:0}, img:imgCore, color:'#ffbb00', side:'L' });
-const enemy = new Fighter({ pos:{x:700, y:0}, img:imgClassic, color:'#00e1ff', side:'R' });
-
-const keys = { left: false, right: false };
-
-// STEROWANIE DOTYKOWE I KLAWIATURA
-function setupInput() {
-    const press = (btn, action, val) => {
-        btn.addEventListener('touchstart', (e) => { e.preventDefault(); action(val); });
-        btn.addEventListener('touchend', (e) => { e.preventDefault(); action(!val); });
-    };
-
-    press(document.getElementById('btn-left'), v => keys.left = v, true);
-    press(document.getElementById('btn-right'), v => keys.right = v, true);
+function update() {
+    ctx.clearRect(0,0,1024,576);
     
-    document.getElementById('btn-jump').ontouchstart = () => { if(player.vel.y===0) player.vel.y = -22; };
-    document.getElementById('btn-attack').ontouchstart = () => { doAttack(); };
-
-    window.onkeydown = (e) => {
-        if(e.key==='ArrowLeft') keys.left = true;
-        if(e.key==='ArrowRight') keys.right = true;
-        if(e.key==='ArrowUp' && player.vel.y===0) player.vel.y = -22;
-        if(e.key===' ') doAttack();
-    };
-    window.onkeyup = (e) => {
-        if(e.key==='ArrowLeft') keys.left = false;
-        if(e.key==='ArrowRight') keys.right = false;
-    };
-}
-
-function doAttack() {
-    if (!gameActive) return;
-    player.isAtk = true;
-    for(let i=0; i<6; i++) particles.push(new Particle(player.pos.x + 180, player.pos.y + 150, player.color));
+    // Ruch Gracza 1
+    if(keys.l) p1.x -= 8; if(keys.r) p1.x += 8;
+    p1.y += p1.vy; p1.vy += 1;
+    if(p1.y > 220) { p1.y = 220; p1.vy = 0; }
     
-    // Kolizja
-    if (player.pos.x + 250 >= enemy.pos.x && player.pos.x <= enemy.pos.x + enemy.w && 
-        player.pos.y + 200 >= enemy.pos.y) {
-        enemy.vibe -= 10;
-        document.getElementById('enemyVibe').style.width = enemy.vibe + '%';
-    }
-    setTimeout(() => player.isAtk = false, 150);
-}
+    // Ruch AI Gracza 2
+    if(p2.x > p1.x + 180) p2.x -= 3; else if(p2.x < p1.x - 180) p2.x += 3;
+    p2.y += p2.vy; p2.vy += 1;
+    if(p2.y > 220) { p2.y = 220; p2.vy = 0; }
 
-function animate() {
-    requestAnimationFrame(animate);
-    ctx.fillStyle = '#050505'; ctx.fillRect(0,0,canvas.width, canvas.height);
+    // Rysowanie postaci
+    ctx.drawImage(imgCore, p1.x, p1.y, 220, 350);
+    ctx.drawImage(imgClassic, p2.x, p2.y, 220, 350);
     
-    player.update(); enemy.update();
-    player.vel.x = keys.left ? -8 : (keys.right ? 8 : 0);
-
-    // Proste AI TC Classic
-    if (gameActive && enemy.vibe > 0) {
-        if (enemy.pos.x > player.pos.x + 200) enemy.vel.x = -3;
-        else if (enemy.pos.x < player.pos.x - 200) enemy.vel.x = 3;
-        else enemy.vel.x = 0;
+    // Atak nutką
+    if(p1.atk) {
+        ctx.fillStyle = "#ffbb00";
+        ctx.font = "80px Arial";
+        ctx.fillText("♪", p1.x + 160, p1.y + 150);
     }
 
-    particles.forEach((p, i) => { 
-        p.update(); p.draw(); 
-        if(p.life <= 0) particles.splice(i, 1);
-    });
-
-    if (enemy.vibe <= 0 && gameActive) {
-        gameActive = false;
-        ctx.fillStyle = 'white'; ctx.font = '60px Arial'; ctx.textAlign = 'center';
-        ctx.fillText('CORE DROP! WYGRANA', canvas.width/2, canvas.height/2);
+    if(p2.vibe > 0) requestAnimationFrame(update);
+    else {
+        ctx.fillStyle = "white"; ctx.font = "60px Arial"; ctx.textAlign = "center";
+        ctx.fillText("WYGRANA CORE!", 512, 288);
     }
 }
 
-setupInput();
-animate();
+const bind = (id, act) => {
+    const b = document.getElementById(id);
+    b.ontouchstart = (e) => { e.preventDefault(); act(true); };
+    b.ontouchend = (e) => { e.preventDefault(); act(false); };
+};
+bind('btn-left', v => keys.l = v);
+bind('btn-right', v => keys.r = v);
+document.getElementById('btn-jump').ontouchstart = () => { if(p1.vy===0) p1.vy = -25; };
+document.getElementById('btn-attack').ontouchstart = () => { 
+    p1.atk = true;
+    if(Math.abs(p1.x - p2.x) < 250) {
+        p2.vibe -= 5;
+        document.getElementById('p2-vibe').style.width = p2.vibe + "%";
+    }
+    setTimeout(() => p1.atk = false, 200);
+};
 </script>
 </body>
 </html>
