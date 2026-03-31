@@ -1,46 +1,520 @@
-<script>
-// ... (reszta kodu bez zmian) ...
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Prosta Bijatyka</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .game-container {
+            background: #0f0f1a;
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+        
+        .health-bars {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .health-container {
+            flex: 1;
+            background: #2a2a3a;
+            border-radius: 20px;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .health-label {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.2em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .health-bar-bg {
+            background: #4a4a5a;
+            border-radius: 10px;
+            height: 25px;
+            overflow: hidden;
+        }
+        
+        .health-bar {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .player-health {
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+        }
+        
+        .enemy-health {
+            background: linear-gradient(90deg, #f44336, #ff7043);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            font-family: inherit;
+            min-width: 120px;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            transform: none;
+            cursor: not-allowed;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #ff6b6b, #c92a2a);
+        }
+        
+        .fight-log {
+            margin-top: 20px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 15px;
+            padding: 10px;
+            color: #ffd700;
+            font-size: 0.9em;
+            text-align: center;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+        }
+        
+        @media (max-width: 768px) {
+            button {
+                padding: 12px 20px;
+                font-size: 1.2em;
+                min-width: 100px;
+            }
+            
+            .health-label {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="health-bars">
+            <div class="health-container">
+                <div class="health-label">⚔️ WOJOWNIK ⚔️</div>
+                <div class="health-bar-bg">
+                    <div class="health-bar player-health" id="playerHealthBar" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="health-container">
+                <div class="health-label">👹 PRZECIWNIK 👹</div>
+                <div class="health-bar-bg">
+                    <div class="health-bar enemy-health" id="enemyHealthBar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <div class="controls">
+            <button id="walkBtn">🚶 CHODŹ</button>
+            <button id="jumpBtn">🦘 SKOK</button>
+            <button id="punchBtn">👊 CIOS</button>
+            <button id="resetBtn" class="reset-btn">🔄 RESET</button>
+        </div>
+        
+        <div class="fight-log" id="fightLog">
+            💪 Rozpocznij walkę! Kliknij przycisk ciosu! 💪
+        </div>
+    </div>
 
-function loop() {
-    ctx.clearRect(0, 0, 1024, 576);
-
-    // Ruch lewo/prawo
-    if(keys.l && player.x > 0) player.x -= 8;
-    if(keys.r && player.x < 850) player.x += 8;
-
-    // Grawitacja
-    player.y += player.vy;
-    player.vy += 1.5; 
-
-    // IDEALNE LĄDOWANIE - to naprawia przeskakiwanie obrazu
-    if(player.y >= 320) { 
-        player.y = 320; 
-        player.vy = 0; // Resetujemy prędkość do zera
-    }
-
-    // --- NAPRAWIONA LOGIKA GRAFIKI ---
-    let currentImg = imgIdle; // Domyślnie chud.jpg
-
-    // 1. Atak ma najwyższy priorytet
-    if (player.state === 'punch') {
-        currentImg = imgPunch;
-    } 
-    // 2. Skok włącza się TYLKO gdy postać jest wyraźnie NAD ziemią
-    // Dodajemy warunek player.y < 315, żeby uniknąć migotania na styku z ziemią
-    else if (player.y < 315) {
-        currentImg = imgJump;
-    }
-    // 3. W każdym innym przypadku (stanie, chodzenie) zostaje chud.jpg
-
-    // Rysowanie
-    if(currentImg.complete) {
-        ctx.drawImage(currentImg, player.x, player.y, 220, 260);
-    }
-
-    // Przeciwnik i reszta...
-    ctx.fillStyle = '#00e1ff';
-    ctx.fillRect(enemy.x, enemy.y + 50, 120, 210);
-
-    requestAnimationFrame(loop);
-}
-</script>
+    <script>
+        // Gracz i przeciwnik
+        let player = {
+            health: 100,
+            maxHealth: 100,
+            x: 100,
+            y: 250,
+            width: 60,
+            height: 80,
+            isJumping: false,
+            jumpHeight: 0,
+            originalY: 250,
+            image: null
+        };
+        
+        let enemy = {
+            health: 100,
+            maxHealth: 100,
+            x: 640,
+            y: 250,
+            width: 60,
+            height: 80,
+            image: null
+        };
+        
+        let gameRunning = true;
+        let gameLoop = null;
+        let jumpVelocity = 0;
+        let gravity = 0.8;
+        let isOnGround = true;
+        
+        // Elementy DOM
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const playerHealthBar = document.getElementById('playerHealthBar');
+        const enemyHealthBar = document.getElementById('enemyHealthBar');
+        const fightLog = document.getElementById('fightLog');
+        
+        // Dźwięki
+        let walkSound = null;
+        let jumpSound = null;
+        let punchSound = null;
+        
+        // Ładowanie dźwięków
+        function loadSounds() {
+            try {
+                walkSound = new Audio('chud.jpg'); // Używamy chud.jpg jako pliku dźwiękowego chodzenia
+                jumpSound = new Audio('jump.jpg'); // Używamy jump.jpg jako pliku dźwiękowego skoku
+                punchSound = new Audio('punch.jpg'); // Używamy punch.jpg jako pliku dźwiękowego ciosu
+                
+                // Próba załadowania plików WAV (jeśli istnieją)
+                // Sprawdzamy czy są dostępne pliki .wav
+                const wavFiles = ['narkorapcore.wav'];
+                wavFiles.forEach(file => {
+                    const testAudio = new Audio(file);
+                    testAudio.load();
+                });
+                
+                // Jeśli chcemy użyć narkorapcore.wav jako muzyki tła
+                const bgMusic = new Audio('narkorapcore.wav');
+                bgMusic.loop = true;
+                bgMusic.volume = 0.3;
+                bgMusic.play().catch(e => console.log('Autoplay zablokowany, kliknij gdzieś aby włączyć muzykę'));
+                
+                // Dodajemy event listener do włączenia muzyki po interakcji
+                document.body.addEventListener('click', () => {
+                    if (bgMusic.paused) {
+                        bgMusic.play().catch(e => console.log('Nie można włączyć muzyki'));
+                    }
+                });
+                
+            } catch(e) {
+                console.log('Dźwięki nie są dostępne, gra działa bez dźwięku');
+            }
+        }
+        
+        // Funkcja do odtwarzania dźwięku
+        function playSound(sound) {
+            if (sound && gameRunning) {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log('Błąd odtwarzania dźwięku'));
+            }
+        }
+        
+        // Ładowanie obrazków
+        function loadImages() {
+            player.image = new Image();
+            player.image.src = 'chud.jpg';
+            
+            enemy.image = new Image();
+            enemy.image.src = 'chud.jpg'; // Przeciwnik też chodzi
+            
+            // Próbujemy załadować inne obrazki jeśli istnieją
+            const punchImg = new Image();
+            punchImg.src = 'punch.jpg';
+            
+            const jumpImg = new Image();
+            jumpImg.src = 'jump.jpg';
+        }
+        
+        // Rysowanie postaci
+        function drawCharacter(img, x, y, width, height, isEnemy = false) {
+            if (img && img.complete && img.naturalWidth > 0) {
+                if (isEnemy) {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(img, -x - width, y, width, height);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(img, x, y, width, height);
+                }
+            } else {
+                // Placeholder jeśli obrazek się nie ładuje
+                ctx.fillStyle = isEnemy ? '#e74c3c' : '#3498db';
+                ctx.fillRect(x, y, width, height);
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.fillText(isEnemy ? '👹' : '⚔️', x + width/2 - 10, y + height/2 + 5);
+            }
+        }
+        
+        // Aktualizacja pasków zdrowia
+        function updateHealthBars() {
+            const playerPercent = (player.health / player.maxHealth) * 100;
+            const enemyPercent = (enemy.health / enemy.maxHealth) * 100;
+            playerHealthBar.style.width = `${Math.max(0, playerPercent)}%`;
+            enemyHealthBar.style.width = `${Math.max(0, enemyPercent)}%`;
+            
+            // Zmiana koloru przy niskim zdrowiu
+            if (playerPercent < 30) {
+                playerHealthBar.style.background = "linear-gradient(90deg, #ff6b6b, #ff0000)";
+            } else {
+                playerHealthBar.style.background = "linear-gradient(90deg, #4caf50, #8bc34a)";
+            }
+            
+            if (enemyPercent < 30) {
+                enemyHealthBar.style.background = "linear-gradient(90deg, #ff6b6b, #ff0000)";
+            } else {
+                enemyHealthBar.style.background = "linear-gradient(90deg, #f44336, #ff7043)";
+            }
+        }
+        
+        // Funkcja ciosu
+        function punch() {
+            if (!gameRunning) return;
+            
+            playSound(punchSound);
+            const damage = Math.floor(Math.random() * 15) + 10; // Losowe obrażenia 10-25
+            enemy.health = Math.max(0, enemy.health - damage);
+            updateHealthBars();
+            
+            addLogMessage(`👊 Zadałeś ${damage} obrażeń! 👊`);
+            
+            // Animacja ciosu
+            ctx.save();
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "red";
+            setTimeout(() => {
+                ctx.shadowBlur = 0;
+            }, 200);
+            
+            // Sprawdzenie czy przeciwnik pokonany
+            if (enemy.health <= 0) {
+                gameRunning = false;
+                addLogMessage("🏆 ZWYCIĘSTWO! 🏆");
+                disableButtons(true);
+            } else {
+                // Kontratak przeciwnika
+                setTimeout(() => {
+                    if (gameRunning) {
+                        const enemyDamage = Math.floor(Math.random() * 12) + 5;
+                        player.health = Math.max(0, player.health - enemyDamage);
+                        updateHealthBars();
+                        addLogMessage(`💔 Przeciwnik kontratakuje! -${enemyDamage} HP 💔`);
+                        
+                        if (player.health <= 0) {
+                            gameRunning = false;
+                            addLogMessage("💀 PRZEGRANA! 💀");
+                            disableButtons(true);
+                        }
+                    }
+                }, 300);
+            }
+        }
+        
+        // Funkcja chodzenia
+        function walk() {
+            if (!gameRunning) return;
+            playSound(walkSound);
+            addLogMessage("🚶 Idziesz do przodu...");
+            
+            // Animacja chodu
+            player.x = Math.min(400, player.x + 30);
+            setTimeout(() => {
+                if (player.x > 300) {
+                    player.x = Math.max(100, player.x - 30);
+                }
+            }, 200);
+        }
+        
+        // Funkcja skoku
+        function jump() {
+            if (!gameRunning || !isOnGround) return;
+            
+            playSound(jumpSound);
+            isOnGround = false;
+            jumpVelocity = -12;
+            addLogMessage("🦘 Wykonujesz skok! 🦘");
+            
+            const jumpInterval = setInterval(() => {
+                if (!gameRunning) {
+                    clearInterval(jumpInterval);
+                    return;
+                }
+                
+                player.y += jumpVelocity;
+                jumpVelocity += gravity;
+                
+                if (player.y >= player.originalY) {
+                    player.y = player.originalY;
+                    isOnGround = true;
+                    clearInterval(jumpInterval);
+                }
+            }, 16);
+        }
+        
+        // Dodawanie komunikatu do logu
+        function addLogMessage(message) {
+            fightLog.innerHTML = message;
+            setTimeout(() => {
+                if (gameRunning) {
+                    fightLog.innerHTML = "⚔️ Walka trwa! ⚔️";
+                }
+            }, 2000);
+        }
+        
+        // Wyłączanie przycisków po zakończeniu gry
+        function disableButtons(disabled) {
+            const btns = ['walkBtn', 'jumpBtn', 'punchBtn'];
+            btns.forEach(btn => {
+                const element = document.getElementById(btn);
+                if (element) element.disabled = disabled;
+            });
+        }
+        
+        // Reset gry
+        function resetGame() {
+            player.health = player.maxHealth;
+            enemy.health = enemy.maxHealth;
+            player.x = 100;
+            player.y = player.originalY;
+            gameRunning = true;
+            isOnGround = true;
+            jumpVelocity = 0;
+            
+            updateHealthBars();
+            addLogMessage("💪 Gra zresetowana! Walcz dalej! 💪");
+            
+            const btns = ['walkBtn', 'jumpBtn', 'punchBtn'];
+            btns.forEach(btn => {
+                const element = document.getElementById(btn);
+                if (element) element.disabled = false;
+            });
+        }
+        
+        // Rysowanie tła
+        function drawBackground() {
+            // Niebo
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Ziemia
+            ctx.fillStyle = '#8B5A2B';
+            ctx.fillRect(0, player.originalY + player.height, canvas.width, canvas.height - (player.originalY + player.height));
+            
+            // Cienie
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(0, player.originalY + player.height - 5, canvas.width, 5);
+            
+            // Chmury
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.beginPath();
+            ctx.arc(100, 50, 30, 0, Math.PI*2);
+            ctx.arc(140, 40, 35, 0, Math.PI*2);
+            ctx.arc(180, 50, 30, 0, Math.PI*2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(600, 80, 25, 0, Math.PI*2);
+            ctx.arc(640, 70, 30, 0, Math.PI*2);
+            ctx.arc(680, 80, 25, 0, Math.PI*2);
+            ctx.fill();
+        }
+        
+        // Główna pętla rysowania
+        function draw() {
+            drawBackground();
+            
+            // Rysowanie gracza
+            drawCharacter(player.image, player.x, player.y, player.width, player.height, false);
+            
+            // Rysowanie przeciwnika
+            drawCharacter(enemy.image, enemy.x, enemy.y, enemy.width, enemy.height, true);
+            
+            // Efekty wizualne przy ciosie
+            if (!gameRunning) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 36px Arial';
+                ctx.textAlign = 'center';
+                if (player.health <= 0) {
+                    ctx.fillText('💀 GAME OVER 💀', canvas.width/2, canvas.height/2);
+                } else if (enemy.health <= 0) {
+                    ctx.fillText('🏆 VICTORY! 🏆', canvas.width/2, canvas.height/2);
+                }
+                ctx.textAlign = 'left';
+            }
+            
+            requestAnimationFrame(draw);
+        }
+        
+        // Inicjalizacja
+        function init() {
+            loadSounds();
+            loadImages();
+            updateHealthBars();
+            
+            // Event listeners dla przycisków
+            document.getElementById('walkBtn').addEventListener('click', walk);
+            document.getElementById('jumpBtn').addEventListener('click', jump);
+            document.getElementById('punchBtn').addEventListener('click', punch);
+            document.getElementById('resetBtn').addEventListener('click', resetGame);
+            
+            // Rozpoczęcie rysowania
+            draw();
+            
+            addLogMessage("🎮 Gra gotowa! Użyj przycisków do walki! 🎮");
+        }
+        
+        // Uruchomienie gry
+        init();
+    </script>
+</body>
+    </html>
