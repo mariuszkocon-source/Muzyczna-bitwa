@@ -3,42 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC Battle: Pixel Edition</title>
+    <title>TC Battle: Fix Edition</title>
     <style>
         * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
-        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: 'Arial Black', sans-serif; }
-        
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; }
-        #overlay h1 { font-size: 50px; text-shadow: 0 0 20px #ffbb00; margin-bottom: 20px; text-align: center; color: #ffbb00; }
-        #start-btn { padding: 20px 50px; font-size: 24px; background: #ffbb00; border: 3px solid #fff; border-radius: 10px; cursor: pointer; color: black; font-weight: bold; box-shadow: 0 0 30px #ffbb00; }
-        #overlay p { margin-top: 15px; font-size: 14px; opacity: 0.7; }
-        
-        #wrapper { position: relative; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; }
-        canvas { border: 2px solid #333; background: #050505; max-width: 100%; max-height: 80vh; object-fit: contain; }
-        
-        .ui { position: absolute; top: 10%; width: 90%; left: 5%; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
-        .vibe-bar { width: 35%; height: 15px; background: rgba(255,255,255,0.1); border: 1px solid #fff; position: relative; }
-        .vibe-fill { height: 100%; width: 100%; transition: width 0.2s; }
-        #playerVibe { background: linear-gradient(90deg, #ff4e00, #ec9f05); box-shadow: 0 0 15px #ff4e00; }
-        #enemyVibe { background: linear-gradient(90deg, #00d2ff, #3a7bd5); box-shadow: 0 0 15px #00d2ff; }
-        
-        #controls { position: absolute; bottom: 5%; width: 90%; left: 5%; display: flex; justify-content: space-between; z-index: 20; }
-        .btn-group { display: flex; gap: 20px; }
-        .touch-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.4); border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; font-size: 35px; touch-action: manipulation; }
-        .touch-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.9); }
-        #btn-attack { border-color: #ffbb00; color: #ffbb00; font-size: 45px; }
-        #btn-jump { border-color: #00e1ff; color: #00e1ff; }
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #start-btn { padding: 20px 40px; font-size: 24px; background: #ffbb00; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        #wrapper { position: relative; width: 100%; height: 100%; display: none; }
+        canvas { background: #050505; width: 100%; height: 100%; object-fit: contain; }
+        .ui { position: absolute; top: 20px; width: 100%; display: flex; justify-content: space-around; }
+        .hp-bg { width: 40%; height: 20px; background: #333; border: 2px solid #fff; }
+        .hp-fill { height: 100%; width: 100%; transition: 0.2s; }
+        #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-around; padding: 0 10px; }
+        .btn { width: 70px; height: 70px; background: rgba(255,255,255,0.2); border: 2px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: #fff; }
     </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <h1>TC BATTLE</h1>
-        <button id="start-btn">START GAME</button>
-        <p>(Tap, aby aktywować bitwę i muzykę)</p>
-    </div>
+<div id="overlay">
+    <h1 style="color: #ffbb00">TC BATTLE</h1>
+    <button id="start-btn">START</button>
+</div>
 
-    <div id="wrapper">
-        <div class="ui">
-            <div class="vibe-bar"><div id="playerVibe" class="vibe-fill"></div></div>
-            <div class="vibe-bar">
+<div id="wrapper">
+    <div class="ui">
+        <div class="hp-bg"><div id="p1-hp" class="hp-fill" style="background: #ffbb00;"></div></div>
+        <div class="hp-bg"><div id="p2-hp" class="hp-fill" style="background: #00e1ff;"></div></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="controls">
+        <div style="display:flex; gap:10px;">
+            <div class="btn" id="l">◀</div>
+            <div class="btn" id="r">▶</div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <div class="btn" id="j" style="color:#00e1ff">↑</div>
+            <div class="btn" id="a" style="color:#ffbb00">♪</div>
+        </div>
+    </div>
+</div>
+
+<audio id="bgMusic" loop><source src="narkorapcore.wav" type="audio/wav"></audio>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const music = document.getElementById('bgMusic');
+canvas.width = 1024; canvas.height = 576;
+
+const img1 = new Image(); img1.src = 'corepxl.jpeg';
+const img2 = new Image(); img2.src = 'classicpxr.jpeg';
+
+let p1 = { x: 150, y: 300, vy: 0, hp: 100, atk: false };
+let p2 = { x: 700, y: 300, vy: 0, hp: 100 };
+let keys = { l: false, r: false };
+
+document.getElementById('start-btn').onclick = () => {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('wrapper').style.display = 'block';
+    music.play();
+    loop();
+};
+
+function loop() {
+    ctx.clearRect(0, 0, 1024, 576);
+
+    // Fizyka i ruch
+    if(keys.l) p1.x -= 7; if(keys.r) p1.x += 7;
+    p1.y += p1.vy; p1.vy += 1;
+    if(p1.y > 300) { p1.y = 300; p1.vy = 0; }
+
+    // Proste AI
+    if(p2.x > p1.x + 150) p2.x -= 2; else if(p2.x < p1.x - 150) p2.x += 2;
+
+    // --- KLUCZOWA ZMIANA: WYCINANIE JEDNEJ POSTACI ---
+    // Pobieramy tylko fragment 120x160 pikseli z początku zdjęcia
+    ctx.drawImage(img1, 0, 0, 120, 160, p1.x, p1.y, 180, 240);
+    ctx.drawImage(img2, 0, 0, 120, 160, p2.x, p2.y, 180, 240);
+
+    if(p1.atk) {
+        ctx.fillStyle = "#ffbb00"; ctx.font = "60px Arial";
+        ctx.fillText("♪", p1.x + 100, p1.y + 50);
+    }
+
+    if(p2.hp > 0) requestAnimationFrame(loop);
+    else {
+        ctx.fillStyle = "white"; ctx.font = "50px Arial"; ctx.textAlign = "center";
+        ctx.fillText("CORE WYGRYWA!", 512, 288);
+    }
+}
+
+const setup = (id, k) => {
+    const b = document.getElementById(id);
+    b.ontouchstart = (e) => { e.preventDefault(); if(k==='j'){if(p1.vy===0)p1.vy=-20} else if(k==='a'){attack()} else keys[k]=true; };
+    b.ontouchend = (e) => { e.preventDefault(); if(k!=='j' && k!=='a') keys[k]=false; };
+};
+setup('l', 'l'); setup('r', 'r'); setup('j', 'j'); setup('a', 'a');
+
+function attack() {
+    p1.atk = true;
+    if(Math.abs(p1.x - p2.x) < 200) {
+        p2.hp -= 10;
+        document.getElementById('p2-hp').style.width = p2.hp + "%";
+    }
+    setTimeout(() => p1.atk = false, 200);
+}
+</script>
+</body>
+</html>
