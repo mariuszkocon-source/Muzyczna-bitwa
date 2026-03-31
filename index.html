@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC BATTLE FIX</title>
+    <title>TC BATTLE: STABLE</title>
     <style>
-        * { user-select: none; box-sizing: border-box; }
-        body { margin: 0; background: #000; overflow: hidden; }
-        canvas { background: #111; width: 100vw; height: 70vh; display: block; }
-        .ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; }
-        .hp { width: 40%; height: 20px; border: 2px solid #fff; background: #333; }
-        .fill { height: 100%; width: 100%; background: #ffbb00; }
-        #controls { height: 30vh; display: flex; justify-content: space-around; align-items: center; background: #222; }
-        .btn { width: 70px; height: 70px; background: #444; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; }
+        * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
+        body { margin: 0; background: #000; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+        canvas { background: #050505; width: 100%; flex-grow: 1; object-fit: contain; }
+        .ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; pointer-events: none; }
+        .hp-bar { width: 40%; height: 20px; background: #333; border: 2px solid #fff; }
+        .hp-fill { height: 100%; width: 100%; background: #ffbb00; transition: width 0.1s; }
+        #controls { height: 160px; display: flex; justify-content: space-around; align-items: center; background: #111; padding: 10px; }
+        .btn { width: 75px; height: 75px; background: #333; border: 3px solid #777; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: white; touch-action: none; }
     </style>
 </head>
 <body>
 
 <div class="ui">
-    <div class="hp"><div id="hp1" class="fill"></div></div>
-    <div class="hp"><div id="hp2" class="fill" style="background:#00e1ff"></div></div>
+    <div class="hp-bar"><div id="hp1" class="hp-fill"></div></div>
+    <div class="hp-bar"><div id="hp2" class="hp-fill" style="background:#00e1ff"></div></div>
 </div>
 
-<canvas id="game"></canvas>
+<canvas id="gameCanvas"></canvas>
 
 <div id="controls">
     <div class="btn" id="l">◀</div>
@@ -32,66 +32,88 @@
 </div>
 
 <script>
-const canvas = document.getElementById('game');
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = 1024; canvas.height = 576;
 
-// WYMUSZENIE MAŁYCH LITER - DOKŁADNIE JAK NA SCREENIE
-const img1 = new Image(); img1.src = 'chud.jpg';
-const img2 = new Image(); img2.src = 'jump.jpg';
-const img3 = new Image(); img3.src = 'punch.jpg';
+// Ładowanie obrazków z Twojego GitHub
+const imgIdle = new Image(); imgIdle.src = 'chud.jpg';
+const imgJump = new Image(); imgJump.src = 'jump.jpg';
+const imgPunch = new Image(); imgPunch.src = 'punch.jpg';
 
-let p1 = { x: 100, y: 300, vy: 0, state: 'idle' };
+let p1 = { x: 150, y: 300, vy: 0, hp: 100, state: 'idle' };
+let p2 = { x: 750, y: 300, hp: 100 };
 let keys = { l: false, r: false };
 
-function draw() {
+function loop() {
     ctx.clearRect(0, 0, 1024, 576);
 
-    // Grawitacja
-    if(keys.l) p1.x -= 8;
-    if(keys.r) p1.x += 8;
+    // RUCH I BLOKADA WYPADANIA ZA EKRAN
+    if(keys.l && p1.x > 0) p1.x -= 8;
+    if(keys.r && p1.x < 850) p1.x += 8;
+
+    // GRAWITACJA
     p1.y += p1.vy;
     p1.vy += 1.5;
     if(p1.y > 300) { p1.y = 300; p1.vy = 0; }
 
-    // Wybór obrazka
-    let pic = img1;
-    if(p1.vy !== 0) pic = img2;
-    if(p1.state === 'atk') pic = img3;
-
-    // RYSOWANIE Z TESTEM
-    if(pic.complete && pic.naturalWidth !== 0) {
-        ctx.drawImage(pic, p1.x, p1.y, 220, 260);
-    } else {
-        // JEŚLI NIE MA POSTACI, NARYSUJ COŚ ŻEBY WIEDZIEĆ GDZIE JEST
-        ctx.fillStyle = "yellow";
-        ctx.fillRect(p1.x, p1.y, 100, 150);
-        ctx.fillStyle = "white";
-        ctx.fillText("ŁADOWANIE: " + pic.src.split('/').pop(), p1.x, p1.y - 10);
+    // WYBÓR OBRAZKA - USTALONA HIERARCHIA (Punch ma pierwszeństwo)
+    let currentImg = imgIdle;
+    if (p1.state === 'punch') {
+        currentImg = imgPunch;
+    } else if (p1.vy !== 0) {
+        currentImg = imgJump;
     }
 
-    // Przeciwnik testowy
-    ctx.fillStyle = "#00e1ff";
-    ctx.fillRect(700, 350, 100, 200);
+    // BEZPIECZNE RYSOWANIE (Jeśli obrazek padnie, rysuje zastępczy kolor)
+    if(currentImg.complete && currentImg.naturalWidth !== 0) {
+        ctx.drawImage(currentImg, p1.x, p1.y, 220, 260);
+    } else {
+        ctx.fillStyle = "orange";
+        ctx.fillRect(p1.x, p1.y, 100, 200);
+    }
 
-    requestAnimationFrame(draw);
+    // PRZECIWNIK (Niebieski prostokąt z Twego screena)
+    ctx.fillStyle = '#00e1ff';
+    ctx.fillRect(p2.x, p2.y + 50, 120, 210);
+
+    // AI PRZECIWNIKA (Chodzi za Tobą)
+    if(p2.x > p1.x + 180) p2.x -= 3;
+    else if(p2.x < p1.x - 180) p2.x += 3;
+
+    requestAnimationFrame(loop);
 }
 
-// Sterowanie
-const press = (id, act) => {
+// STEROWANIE DOTYKOWE - NAPRAWIONE "KRASZOWANIE" PRZY CHODZENIU
+const setupBtn = (id, action) => {
     const el = document.getElementById(id);
-    el.ontouchstart = (e) => {
+    
+    el.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        if(act==='l') keys.l = true;
-        if(act==='r') keys.r = true;
-        if(act==='j' && p1.vy === 0) p1.vy = -30;
-        if(act==='a') { p1.state = 'atk'; setTimeout(()=>p1.state='idle', 200); }
-    };
-    el.ontouchend = () => { keys.l = false; keys.r = false; };
+        if(action === 'l') keys.l = true;
+        if(action === 'r') keys.r = true;
+        if(action === 'j' && p1.vy === 0) p1.vy = -30;
+        if(action === 'a') {
+            p1.state = 'punch';
+            if(Math.abs(p1.x - p2.x) < 220) {
+                p2.hp -= 10;
+                document.getElementById('hp2').style.width = p2.hp + '%';
+            }
+            setTimeout(() => { p1.state = 'idle'; }, 200);
+        }
+    });
+
+    el.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if(action === 'l') keys.l = false;
+        if(action === 'r') keys.r = false;
+    });
 };
 
-press('l','l'); press('r','r'); press('j','j'); press('a','a');
-draw();
+setupBtn('l', 'l'); setupBtn('r', 'r'); 
+setupBtn('j', 'j'); setupBtn('a', 'a');
+
+loop();
 </script>
 </body>
 </html>
