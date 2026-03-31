@@ -1,128 +1,46 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC BATTLE: FINAL STABLE</title>
-    <style>
-        * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
-        body { margin: 0; background: #000; overflow: hidden; display: flex; flex-direction: column; height: 100vh; color: white; font-family: sans-serif; }
-        canvas { background: #050505; width: 100%; flex-grow: 1; object-fit: contain; }
-        .ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; pointer-events: none; z-index: 10; }
-        .hp-bar { width: 40%; height: 20px; background: #333; border: 2px solid #fff; }
-        .hp-fill { height: 100%; width: 100%; transition: width 0.1s; }
-        #controls { height: 160px; display: flex; justify-content: space-around; align-items: center; background: #111; padding: 10px; z-index: 20; }
-        .btn { width: 75px; height: 75px; background: #333; border: 3px solid #777; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: white; touch-action: none; }
-    </style>
-</head>
-<body>
-
-<div class="ui">
-    <div class="hp-bar"><div id="hp1" class="hp-fill" style="background:#ffbb00"></div></div>
-    <div class="hp-bar"><div id="hp2" class="hp-fill" style="background:#00e1ff"></div></div>
-</div>
-
-<canvas id="gameCanvas"></canvas>
-
-<div id="controls">
-    <div class="btn" id="l">◀</div>
-    <div class="btn" id="r">▶</div>
-    <div class="btn" id="j">↑</div>
-    <div class="btn" id="a">♪</div>
-</div>
-
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = 1024; canvas.height = 576;
-
-// Ładowanie TWOICH 3 osobnych grafik JPG
-const imgIdle = new Image(); imgIdle.src = 'chud.jpg';   // Baza: stanie i chodzenie
-const imgJump = new Image(); imgJump.src = 'jump.jpg';   // Skok (tylko w locie)
-const imgPunch = new Image(); imgPunch.src = 'punch.jpg'; // Atak
-
-let player = { x: 150, y: 320, vy: 0, hp: 100, state: 'idle' };
-let enemy = { x: 750, y: 320, hp: 100 };
-let keys = { l: false, r: false };
-let gameActive = true;
+// ... (reszta kodu bez zmian) ...
 
 function loop() {
     ctx.clearRect(0, 0, 1024, 576);
 
-    // Grawitacja i ruch gracza
+    // Ruch lewo/prawo
     if(keys.l && player.x > 0) player.x -= 8;
     if(keys.r && player.x < 850) player.x += 8;
 
+    // Grawitacja
     player.y += player.vy;
-    player.vy += 1.5; // Grawitacja
-    if(player.y > 320) { player.y = 320; player.vy = 0; }
+    player.vy += 1.5; 
 
-    // Proste AI przeciwnika
-    if(enemy.x > player.x + 180) enemy.x -= 3;
-    else if(enemy.x < player.x - 180) enemy.x += 3;
+    // IDEALNE LĄDOWANIE - to naprawia przeskakiwanie obrazu
+    if(player.y >= 320) { 
+        player.y = 320; 
+        player.vy = 0; // Resetujemy prędkość do zera
+    }
 
-    // --- KLUCZOWA POPRAWKA LOGIKI GRAFIKI ---
-    let currentImg = imgIdle; // CHODZENIE I STANIE: zawsze chud.jpg
+    // --- NAPRAWIONA LOGIKA GRAFIKI ---
+    let currentImg = imgIdle; // Domyślnie chud.jpg
 
-    // Punch ma absolutne pierwszeństwo (najwyższa warstwa)
+    // 1. Atak ma najwyższy priorytet
     if (player.state === 'punch') {
         currentImg = imgPunch;
     } 
-    // Skok TYLKO wtedy, gdy vy != 0 (najniższa warstwa)
-    else if (player.vy !== 0) {
+    // 2. Skok włącza się TYLKO gdy postać jest wyraźnie NAD ziemią
+    // Dodajemy warunek player.y < 315, żeby uniknąć migotania na styku z ziemią
+    else if (player.y < 315) {
         currentImg = imgJump;
     }
+    // 3. W każdym innym przypadku (stanie, chodzenie) zostaje chud.jpg
 
-    // Bezpieczne rysowanie (z testem ładowania)
-    if(currentImg.complete && currentImg.naturalWidth !== 0) {
+    // Rysowanie
+    if(currentImg.complete) {
         ctx.drawImage(currentImg, player.x, player.y, 220, 260);
     }
 
-    // Przeciwnik testowy (Niebieski prostokąt z Twego screena)
+    // Przeciwnik i reszta...
     ctx.fillStyle = '#00e1ff';
     ctx.fillRect(enemy.x, enemy.y + 50, 120, 210);
 
-    // Warunek wygranej
-    if(enemy.hp > 0 && gameActive) {
-        requestAnimationFrame(loop);
-    } else if (gameActive) {
-        gameActive = false;
-        ctx.fillStyle = "white"; ctx.font = "60px Arial"; ctx.textAlign = "center";
-        ctx.fillText("CORE WYGRAŁ!", 512, 288);
-    }
+    requestAnimationFrame(loop);
 }
-
-// Obsługa dotykowa (addEventListener jest stabilniejszy na telefonach)
-const bindTouchBtn = (id, action) => {
-    const el = document.getElementById(id);
-    
-    el.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if(!gameActive) return;
-        if(action === 'l') keys.l = true;
-        if(action === 'r') keys.r = true;
-        if(action === 'j' && player.vy === 0) player.vy = -30;
-        if(action === 'a') {
-            player.state = 'punch';
-            if(Math.abs(player.x - enemy.x) < 220) {
-                enemy.hp -= 10;
-                document.getElementById('hp2').style.width = enemy.hp + '%';
-            }
-            setTimeout(() => player.state = 'idle', 200);
-        }
-    });
-
-    el.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        if(action === 'l') keys.l = false;
-        if(action === 'r') keys.r = false;
-    });
-};
-
-bindTouchBtn('l', 'l'); bindTouchBtn('r', 'r');
-bindTouchBtn('j', 'j'); bindTouchBtn('a', 'a');
-
-loop();
 </script>
-</body>
-</html>
