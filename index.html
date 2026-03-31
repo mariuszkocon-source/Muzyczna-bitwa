@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC BATTLE: STABLE</title>
+    <title>TC BATTLE: FINAL STABLE</title>
     <style>
         * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
-        body { margin: 0; background: #000; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+        body { margin: 0; background: #000; overflow: hidden; display: flex; flex-direction: column; height: 100vh; color: white; font-family: sans-serif; }
         canvas { background: #050505; width: 100%; flex-grow: 1; object-fit: contain; }
-        .ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; pointer-events: none; }
+        .ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; pointer-events: none; z-index: 10; }
         .hp-bar { width: 40%; height: 20px; background: #333; border: 2px solid #fff; }
-        .hp-fill { height: 100%; width: 100%; background: #ffbb00; transition: width 0.1s; }
-        #controls { height: 160px; display: flex; justify-content: space-around; align-items: center; background: #111; padding: 10px; }
+        .hp-fill { height: 100%; width: 100%; transition: width 0.1s; }
+        #controls { height: 160px; display: flex; justify-content: space-around; align-items: center; background: #111; padding: 10px; z-index: 20; }
         .btn { width: 75px; height: 75px; background: #333; border: 3px solid #777; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: white; touch-action: none; }
     </style>
 </head>
 <body>
 
 <div class="ui">
-    <div class="hp-bar"><div id="hp1" class="hp-fill"></div></div>
+    <div class="hp-bar"><div id="hp1" class="hp-fill" style="background:#ffbb00"></div></div>
     <div class="hp-bar"><div id="hp2" class="hp-fill" style="background:#00e1ff"></div></div>
 </div>
 
@@ -36,70 +36,79 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = 1024; canvas.height = 576;
 
-// Ładowanie obrazków z Twojego GitHub
-const imgIdle = new Image(); imgIdle.src = 'chud.jpg';
-const imgJump = new Image(); imgJump.src = 'jump.jpg';
-const imgPunch = new Image(); imgPunch.src = 'punch.jpg';
+// Ładowanie TWOICH 3 osobnych grafik JPG
+const imgIdle = new Image(); imgIdle.src = 'chud.jpg';   // Baza: stanie i chodzenie
+const imgJump = new Image(); imgJump.src = 'jump.jpg';   // Skok (tylko w locie)
+const imgPunch = new Image(); imgPunch.src = 'punch.jpg'; // Atak
 
-let p1 = { x: 150, y: 300, vy: 0, hp: 100, state: 'idle' };
-let p2 = { x: 750, y: 300, hp: 100 };
+let player = { x: 150, y: 320, vy: 0, hp: 100, state: 'idle' };
+let enemy = { x: 750, y: 320, hp: 100 };
 let keys = { l: false, r: false };
+let gameActive = true;
 
 function loop() {
     ctx.clearRect(0, 0, 1024, 576);
 
-    // RUCH I BLOKADA WYPADANIA ZA EKRAN
-    if(keys.l && p1.x > 0) p1.x -= 8;
-    if(keys.r && p1.x < 850) p1.x += 8;
+    // Grawitacja i ruch gracza
+    if(keys.l && player.x > 0) player.x -= 8;
+    if(keys.r && player.x < 850) player.x += 8;
 
-    // GRAWITACJA
-    p1.y += p1.vy;
-    p1.vy += 1.5;
-    if(p1.y > 300) { p1.y = 300; p1.vy = 0; }
+    player.y += player.vy;
+    player.vy += 1.5; // Grawitacja
+    if(player.y > 320) { player.y = 320; player.vy = 0; }
 
-    // WYBÓR OBRAZKA - USTALONA HIERARCHIA (Punch ma pierwszeństwo)
-    let currentImg = imgIdle;
-    if (p1.state === 'punch') {
+    // Proste AI przeciwnika
+    if(enemy.x > player.x + 180) enemy.x -= 3;
+    else if(enemy.x < player.x - 180) enemy.x += 3;
+
+    // --- KLUCZOWA POPRAWKA LOGIKI GRAFIKI ---
+    let currentImg = imgIdle; // CHODZENIE I STANIE: zawsze chud.jpg
+
+    // Punch ma absolutne pierwszeństwo (najwyższa warstwa)
+    if (player.state === 'punch') {
         currentImg = imgPunch;
-    } else if (p1.vy !== 0) {
+    } 
+    // Skok TYLKO wtedy, gdy vy != 0 (najniższa warstwa)
+    else if (player.vy !== 0) {
         currentImg = imgJump;
     }
 
-    // BEZPIECZNE RYSOWANIE (Jeśli obrazek padnie, rysuje zastępczy kolor)
+    // Bezpieczne rysowanie (z testem ładowania)
     if(currentImg.complete && currentImg.naturalWidth !== 0) {
-        ctx.drawImage(currentImg, p1.x, p1.y, 220, 260);
-    } else {
-        ctx.fillStyle = "orange";
-        ctx.fillRect(p1.x, p1.y, 100, 200);
+        ctx.drawImage(currentImg, player.x, player.y, 220, 260);
     }
 
-    // PRZECIWNIK (Niebieski prostokąt z Twego screena)
+    // Przeciwnik testowy (Niebieski prostokąt z Twego screena)
     ctx.fillStyle = '#00e1ff';
-    ctx.fillRect(p2.x, p2.y + 50, 120, 210);
+    ctx.fillRect(enemy.x, enemy.y + 50, 120, 210);
 
-    // AI PRZECIWNIKA (Chodzi za Tobą)
-    if(p2.x > p1.x + 180) p2.x -= 3;
-    else if(p2.x < p1.x - 180) p2.x += 3;
-
-    requestAnimationFrame(loop);
+    // Warunek wygranej
+    if(enemy.hp > 0 && gameActive) {
+        requestAnimationFrame(loop);
+    } else if (gameActive) {
+        gameActive = false;
+        ctx.fillStyle = "white"; ctx.font = "60px Arial"; ctx.textAlign = "center";
+        ctx.fillText("CORE WYGRAŁ!", 512, 288);
+    }
 }
 
-// STEROWANIE DOTYKOWE - NAPRAWIONE "KRASZOWANIE" PRZY CHODZENIU
-const setupBtn = (id, action) => {
+// Obsługa dotykowa (addEventListener jest stabilniejszy na telefonach)
+const bindTouchBtn = (id, action) => {
     const el = document.getElementById(id);
     
     el.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        if(!gameActive) return;
         if(action === 'l') keys.l = true;
         if(action === 'r') keys.r = true;
-        if(action === 'j' && p1.vy === 0) p1.vy = -30;
+        if(action === 'j' && player.vy === 0) player.vy = -30;
         if(action === 'a') {
-            p1.state = 'punch';
-            if(Math.abs(p1.x - p2.x) < 220) {
-                p2.hp -= 10;
-                document.getElementById('hp2').style.width = p2.hp + '%';
+            player.state = 'punch';
+            if(Math.abs(player.x - enemy.x) < 220) {
+                enemy.hp -= 10;
+                document.getElementById('hp2').style.width = enemy.hp + '%';
             }
-            setTimeout(() => { p1.state = 'idle'; }, 200);
+            setTimeout(() => player.state = 'idle', 200);
         }
     });
 
@@ -110,8 +119,8 @@ const setupBtn = (id, action) => {
     });
 };
 
-setupBtn('l', 'l'); setupBtn('r', 'r'); 
-setupBtn('j', 'j'); setupBtn('a', 'a');
+bindTouchBtn('l', 'l'); bindTouchBtn('r', 'r');
+bindTouchBtn('j', 'j'); bindTouchBtn('a', 'a');
 
 loop();
 </script>
