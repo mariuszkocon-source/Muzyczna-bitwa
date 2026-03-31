@@ -3,43 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC BATTLE: FIXED</title>
+    <title>TC BATTLE: QUICK TEST</title>
     <style>
         * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
         body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #start-btn { padding: 20px 40px; font-size: 24px; background: #ffbb00; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: #000; }
-        #wrapper { position: relative; width: 100%; height: 100%; display: none; }
-        canvas { background: #050505; width: 100%; height: 100%; object-fit: contain; }
+        #wrapper { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; }
+        canvas { background: #050505; width: 100%; height: 70%; object-fit: contain; }
         .ui { position: absolute; top: 20px; width: 100%; display: flex; justify-content: space-around; }
         .hp-bg { width: 40%; height: 20px; background: #333; border: 2px solid #fff; }
-        .hp-fill { height: 100%; width: 100%; transition: 0.2s; }
-        #controls { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: space-around; }
-        .btn { width: 80px; height: 80px; background: rgba(255,255,255,0.1); border: 3px solid rgba(255,255,255,0.5); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 40px; color: white; touch-action: none; }
+        .hp-fill { height: 100%; width: 100%; transition: 0.2s; background: #ffbb00; }
+        #controls { width: 100%; height: 30%; display: flex; justify-content: space-around; align-items: center; background: #111; }
+        .btn { width: 70px; height: 70px; background: #333; border: 3px solid #777; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: white; touch-action: none; }
     </style>
 </head>
 <body>
 
-<div id="overlay">
-    <h1 style="color: #ffbb00">TC BATTLE</h1>
-    <button id="start-btn">START</button>
-</div>
-
 <div id="wrapper">
     <div class="ui">
-        <div class="hp-bg"><div id="p1-hp" class="hp-fill" style="background: #ffbb00;"></div></div>
+        <div class="hp-bg"><div id="p1-hp" class="hp-fill"></div></div>
         <div class="hp-bg"><div id="p2-hp" class="hp-fill" style="background: #00e1ff;"></div></div>
     </div>
     <canvas id="gameCanvas"></canvas>
     <div id="controls">
-        <div style="display:flex; gap:15px;">
-            <div class="btn" id="l">◀</div>
-            <div class="btn" id="r">▶</div>
-        </div>
-        <div style="display:flex; gap:15px;">
-            <div class="btn" id="j" style="color:#00e1ff">↑</div>
-            <div class="btn" id="a" style="color:#ffbb00">♪</div>
-        </div>
+        <div class="btn" id="l">◀</div>
+        <div class="btn" id="r">▶</div>
+        <div class="btn" id="j" style="color:#00e1ff">↑</div>
+        <div class="btn" id="a" style="color:#ffbb00">♪</div>
     </div>
 </div>
 
@@ -51,79 +40,49 @@ const ctx = canvas.getContext('2d');
 const music = document.getElementById('bgMusic');
 canvas.width = 1024; canvas.height = 576;
 
-// ŁADOWANIE TWOICH NOWYCH PLIKÓW
-const p1Idle = new Image(); p1Idle.src = 'core_idle.png';
-const p1Atk = new Image(); p1Atk.src = 'core_atk1.png';
-const p1Jump = new Image(); p1Jump.src = 'core_jump.png';
-const imgClassic = new Image(); imgClassic.src = 'classicpxr.jpeg';
+// TWOJE PLIKI Z GITHUB
+const imgIdle = new Image(); imgIdle.src = 'chud.jpg';
+const imgJump = new Image(); imgJump.src = 'jump.jpg';
+const imgPunch = new Image(); imgPunch.src = 'punch.jpg';
 
-let p1 = { x: 150, y: 320, vy: 0, hp: 100, atk: false, img: p1Idle };
-let p2 = { x: 700, y: 320, vy: 0, hp: 100 };
+let p1 = { x: 150, y: 300, vy: 0, hp: 100, state: 'idle' };
+let p2 = { x: 700, y: 300, hp: 100 };
 let keys = { l: false, r: false };
 
-document.getElementById('start-btn').onclick = () => {
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('wrapper').style.display = 'block';
-    music.play().catch(e => console.log(e));
-    loop();
-};
+// Start po kliknięciu w ekran
+window.onclick = () => { music.play(); };
 
 function loop() {
-    ctx.clearRect(0, 0, 1024, 576);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Ruch Gracza
+    // Ruch
     if(keys.l) p1.x -= 8; if(keys.r) p1.x += 8;
-    p1.y += p1.vy; p1.vy += 1;
-    if(p1.y > 320) { p1.y = 320; p1.vy = 0; }
+    p1.y += p1.vy; p1.vy += 1.2;
+    if(p1.y > 300) { p1.y = 300; p1.vy = 0; }
 
-    // Proste AI
-    if(p2.x > p1.x + 180) p2.x -= 3; else if(p2.x < p1.x - 180) p2.x += 3;
+    // Stan grafiki
+    let currentImg = imgIdle;
+    if (p1.vy !== 0) currentImg = imgJump;
+    if (p1.state === 'punch') currentImg = imgPunch;
 
-    // Wybór grafiki dla p1
-    if(p1.atk) p1.img = p1Atk;
-    else if(p1.vy !== 0) p1.img = p1Jump;
-    else p1.img = p1Idle;
-
-    // RYSOWANIE
-    // Gracz 1 (używa Twoich nowych plików)
-    ctx.drawImage(p1.img, p1.x, p1.y, 200, 240);
+    // Rysowanie (p1 - Twoje nowe grafiki)
+    ctx.drawImage(currentImg, p1.x, p1.y, 200, 250);
     
-    // Przeciwnik (tymczasowo wycinany z classicpxr.jpeg)
-    ctx.drawImage(imgClassic, 0, 0, 150, 200, p2.x, p2.y, 200, 240);
+    // Rysowanie p2 (tymczasowy kwadrat jako przeciwnik)
+    ctx.fillStyle = '#00e1ff';
+    ctx.fillRect(p2.x, p2.y, 150, 250);
 
-    if(p1.atk) {
-        ctx.fillStyle = "#ffbb00"; ctx.font = "80px Arial";
-        ctx.fillText("♪", p1.x + 150, p1.y + 100);
-    }
-
-    if(p2.hp > 0) requestAnimationFrame(loop);
-    else {
-        ctx.fillStyle = "white"; ctx.font = "60px Arial"; ctx.textAlign = "center";
-        ctx.fillText("CORE WYGRAŁ!", 512, 288);
-    }
+    requestAnimationFrame(loop);
 }
 
-const setup = (id, k) => {
+// Sterowanie
+const setupBtn = (id, action) => {
     const el = document.getElementById(id);
-    el.addEventListener('touchstart', (e) => {
+    el.ontouchstart = (e) => {
         e.preventDefault();
-        if(k==='j'){ if(p1.vy===0) p1.vy=-22; }
-        else if(k==='a'){ 
-            p1.atk = true;
-            if(Math.abs(p1.x - p2.x) < 250) {
-                p2.hp -= 10;
-                document.getElementById('p2-hp').style.width = p2.hp + "%";
-            }
-            setTimeout(() => p1.atk = false, 200);
-        }
-        else keys[k] = true;
-    });
-    el.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        if(k!=='j' && k!=='a') keys[k] = false;
-    });
-};
-setup('l', 'l'); setup('r', 'r'); setup('j', 'j'); setup('a', 'a');
-</script>
-</body>
-</html>
+        if(action === 'jump' && p1.vy === 0) p1.vy = -25;
+        if(action === 'punch') {
+            p1.state = 'punch';
+            if(Math.abs(p1.x - p2.x) < 200) {
+                p2.hp -= 5;
+                document.getElementById('p
