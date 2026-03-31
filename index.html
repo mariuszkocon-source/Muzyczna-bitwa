@@ -3,109 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC BATTLE: FINAL FIX</title>
+    <title>TC BATTLE FIX</title>
     <style>
-        * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
-        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
-        #wrapper { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; }
-        canvas { background: #050505; width: 100%; height: 75%; object-fit: contain; }
-        .ui { position: absolute; top: 10%; width: 100%; display: flex; justify-content: space-around; pointer-events: none; }
-        .hp-bar { width: 40%; height: 20px; background: #333; border: 2px solid #fff; }
-        .hp-fill { height: 100%; width: 100%; transition: 0.2s; }
-        #controls { width: 100%; height: 25%; display: flex; justify-content: space-around; align-items: center; background: #111; padding-bottom: 10px; }
-        .btn { width: 75px; height: 75px; background: rgba(255,255,255,0.1); border: 3px solid #666; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 35px; color: white; touch-action: none; }
+        * { user-select: none; box-sizing: border-box; }
+        body { margin: 0; background: #000; overflow: hidden; }
+        canvas { background: #111; width: 100vw; height: 70vh; display: block; }
+        .ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-around; }
+        .hp { width: 40%; height: 20px; border: 2px solid #fff; background: #333; }
+        .fill { height: 100%; width: 100%; background: #ffbb00; }
+        #controls { height: 30vh; display: flex; justify-content: space-around; align-items: center; background: #222; }
+        .btn { width: 70px; height: 70px; background: #444; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; }
     </style>
 </head>
 <body>
 
-<div id="wrapper">
-    <div class="ui">
-        <div class="hp-bar"><div id="p1-hp" class="hp-fill" style="background: #ffbb00;"></div></div>
-        <div class="hp-bar"><div id="p2-hp" class="hp-fill" style="background: #00e1ff;"></div></div>
-    </div>
-    <canvas id="gameCanvas"></canvas>
-    <div id="controls">
-        <div class="btn" id="l">◀</div>
-        <div class="btn" id="r">▶</div>
-        <div class="btn" id="j" style="color:#00e1ff">↑</div>
-        <div class="btn" id="a" style="color:#ffbb00">♪</div>
-    </div>
+<div class="ui">
+    <div class="hp"><div id="hp1" class="fill"></div></div>
+    <div class="hp"><div id="hp2" class="fill" style="background:#00e1ff"></div></div>
 </div>
 
-<audio id="bgMusic" loop><source src="narkorapcore.wav" type="audio/wav"></audio>
+<canvas id="game"></canvas>
+
+<div id="controls">
+    <div class="btn" id="l">◀</div>
+    <div class="btn" id="r">▶</div>
+    <div class="btn" id="j">↑</div>
+    <div class="btn" id="a">♪</div>
+</div>
 
 <script>
-const canvas = document.getElementById('gameCanvas');
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-const music = document.getElementById('bgMusic');
 canvas.width = 1024; canvas.height = 576;
 
-// ŁADOWANIE TWOICH PLIKÓW JPG
-const imgIdle = new Image(); imgIdle.src = 'chud.jpg';
-const imgJump = new Image(); imgJump.src = 'jump.jpg';
-const imgPunch = new Image(); imgPunch.src = 'punch.jpg';
+// WYMUSZENIE MAŁYCH LITER - DOKŁADNIE JAK NA SCREENIE
+const img1 = new Image(); img1.src = 'chud.jpg';
+const img2 = new Image(); img2.src = 'jump.jpg';
+const img3 = new Image(); img3.src = 'punch.jpg';
 
-let p1 = { x: 150, y: 300, vy: 0, hp: 100, state: 'idle' };
-let p2 = { x: 750, y: 300, hp: 100 };
+let p1 = { x: 100, y: 300, vy: 0, state: 'idle' };
 let keys = { l: false, r: false };
 
-window.onclick = () => { music.play().catch(() => {}); };
-
-function loop() {
+function draw() {
     ctx.clearRect(0, 0, 1024, 576);
 
-    // Grawitacja i ruch gracza
-    if(keys.l) p1.x -= 8; if(keys.r) p1.x += 8;
-    p1.y += p1.vy; p1.vy += 1.2;
+    // Grawitacja
+    if(keys.l) p1.x -= 8;
+    if(keys.r) p1.x += 8;
+    p1.y += p1.vy;
+    p1.vy += 1.5;
     if(p1.y > 300) { p1.y = 300; p1.vy = 0; }
 
-    // Proste AI przeciwnika
-    if(p2.x > p1.x + 150) p2.x -= 2;
-    else if(p2.x < p1.x - 150) p2.x += 2;
+    // Wybór obrazka
+    let pic = img1;
+    if(p1.vy !== 0) pic = img2;
+    if(p1.state === 'atk') pic = img3;
 
-    // WYBÓR TWOJEJ GRAFIKI
-    let currentImg = imgIdle;
-    if (p1.vy !== 0) currentImg = imgJump;
-    if (p1.state === 'punch') currentImg = imgPunch;
-
-    // RYSOWANIE TWOJEJ POSTACI
-    if(currentImg.complete) {
-        ctx.drawImage(currentImg, p1.x, p1.y, 220, 260);
+    // RYSOWANIE Z TESTEM
+    if(pic.complete && pic.naturalWidth !== 0) {
+        ctx.drawImage(pic, p1.x, p1.y, 220, 260);
+    } else {
+        // JEŚLI NIE MA POSTACI, NARYSUJ COŚ ŻEBY WIEDZIEĆ GDZIE JEST
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(p1.x, p1.y, 100, 150);
+        ctx.fillStyle = "white";
+        ctx.fillText("ŁADOWANIE: " + pic.src.split('/').pop(), p1.x, p1.y - 10);
     }
 
-    // RYSOWANIE PRZECIWNIKA (Niebieski kwadrat dopóki nie dodasz jego plików)
-    ctx.fillStyle = '#00e1ff';
-    ctx.fillRect(p2.x, p2.y + 50, 120, 210);
+    // Przeciwnik testowy
+    ctx.fillStyle = "#00e1ff";
+    ctx.fillRect(700, 350, 100, 200);
 
-    requestAnimationFrame(loop);
+    requestAnimationFrame(draw);
 }
 
-// Obsługa przycisków dotykowych
-const setup = (id, type) => {
+// Sterowanie
+const press = (id, act) => {
     const el = document.getElementById(id);
     el.ontouchstart = (e) => {
         e.preventDefault();
-        if(type === 'l') keys.l = true;
-        if(type === 'r') keys.r = true;
-        if(type === 'j' && p1.vy === 0) p1.vy = -25;
-        if(type === 'a') {
-            p1.state = 'punch';
-            if(Math.abs(p1.x - p2.x) < 220) {
-                p2.hp -= 10;
-                document.getElementById('p2-hp').style.width = p2.hp + '%';
-            }
-            setTimeout(() => p1.state = 'idle', 250);
-        }
+        if(act==='l') keys.l = true;
+        if(act==='r') keys.r = true;
+        if(act==='j' && p1.vy === 0) p1.vy = -30;
+        if(act==='a') { p1.state = 'atk'; setTimeout(()=>p1.state='idle', 200); }
     };
-    el.ontouchend = (e) => {
-        e.preventDefault();
-        keys.l = false; keys.r = false;
-    };
+    el.ontouchend = () => { keys.l = false; keys.r = false; };
 };
 
-setup('l', 'l'); setup('r', 'r'); setup('j', 'j'); setup('a', 'a');
-
-loop();
+press('l','l'); press('r','r'); press('j','j'); press('a','a');
+draw();
 </script>
 </body>
 </html>
