@@ -3,123 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC Battle: Music Edition</title>
+    <title>TC Battle: Pixel Edition</title>
     <style>
         * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
         body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: 'Arial Black', sans-serif; }
         
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        #start-btn { padding: 20px 50px; font-size: 24px; background: #ffbb00; border: none; border-radius: 10px; cursor: pointer; color: black; font-weight: bold; box-shadow: 0 0 30px #ffbb00; margin-top: 20px; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; }
+        #overlay h1 { font-size: 50px; text-shadow: 0 0 20px #ffbb00; margin-bottom: 20px; text-align: center; color: #ffbb00; }
+        #start-btn { padding: 20px 50px; font-size: 24px; background: #ffbb00; border: 3px solid #fff; border-radius: 10px; cursor: pointer; color: black; font-weight: bold; box-shadow: 0 0 30px #ffbb00; }
+        #overlay p { margin-top: 15px; font-size: 14px; opacity: 0.7; }
         
         #wrapper { position: relative; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; }
-        canvas { background: #050505; max-width: 100%; max-height: 80vh; border: 2px solid #333; }
+        canvas { border: 2px solid #333; background: #050505; max-width: 100%; max-height: 80vh; object-fit: contain; }
         
-        .ui { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; z-index: 10; }
-        .vibe-bar { width: 40%; height: 20px; background: #111; border: 2px solid #fff; }
-        .fill { height: 100%; width: 100%; transition: 0.3s; }
-
-        #controls { position: absolute; bottom: 30px; width: 90%; display: flex; justify-content: space-between; z-index: 20; }
-        .btn-group { display: flex; gap: 15px; }
-        .touch-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.1); border: 3px solid rgba(255,255,255,0.5); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 40px; color: white; }
+        .ui { position: absolute; top: 10%; width: 90%; left: 5%; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
+        .vibe-bar { width: 35%; height: 15px; background: rgba(255,255,255,0.1); border: 1px solid #fff; position: relative; }
+        .vibe-fill { height: 100%; width: 100%; transition: width 0.2s; }
+        #playerVibe { background: linear-gradient(90deg, #ff4e00, #ec9f05); box-shadow: 0 0 15px #ff4e00; }
+        #enemyVibe { background: linear-gradient(90deg, #00d2ff, #3a7bd5); box-shadow: 0 0 15px #00d2ff; }
+        
+        #controls { position: absolute; bottom: 5%; width: 90%; left: 5%; display: flex; justify-content: space-between; z-index: 20; }
+        .btn-group { display: flex; gap: 20px; }
+        .touch-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.4); border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; font-size: 35px; touch-action: manipulation; }
+        .touch-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.9); }
+        #btn-attack { border-color: #ffbb00; color: #ffbb00; font-size: 45px; }
+        #btn-jump { border-color: #00e1ff; color: #00e1ff; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <h1 style="color:#ffbb00; font-size: 40px;">TC BATTLE</h1>
-        <p>MUZYKA: NARKORAPCORE</p>
-        <button id="start-btn">ODPALAJ BITWĘ!</button>
+        <h1>TC BATTLE</h1>
+        <button id="start-btn">START GAME</button>
+        <p>(Tap, aby aktywować bitwę i muzykę)</p>
     </div>
 
     <div id="wrapper">
         <div class="ui">
-            <div class="vibe-bar"><div id="p1-vibe" class="fill" style="background: #ffbb00;"></div></div>
-            <div class="vibe-bar"><div id="p2-vibe" class="fill" style="background: #00e1ff;"></div></div>
-        </div>
-        <canvas id="gameCanvas"></canvas>
-        <div id="controls">
-            <div class="btn-group">
-                <div class="touch-btn" id="btn-left">◀</div>
-                <div class="touch-btn" id="btn-right">▶</div>
-            </div>
-            <div class="btn-group">
-                <div class="touch-btn" id="btn-jump" style="color:#00e1ff">↑</div>
-                <div class="touch-btn" id="btn-attack" style="color:#ffbb00">♪</div>
-            </div>
-        </div>
-    </div>
-
-    <audio id="bgMusic" loop>
-        <source src="narkorapcore.wav" type="audio/wav">
-    </audio>
-
-<script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const music = document.getElementById('bgMusic');
-canvas.width = 1024; canvas.height = 576;
-
-const imgCore = new Image(); imgCore.src = 'corepxl.jpeg';
-const imgClassic = new Image(); imgClassic.src = 'classicpxr.jpeg';
-
-let p1 = { x: 100, y: 220, vy: 0, vibe: 100, atk: false };
-let p2 = { x: 700, y: 220, vy: 0, vibe: 100 };
-let keys = { l: false, r: false };
-
-document.getElementById('start-btn').onclick = () => {
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('wrapper').style.display = 'flex';
-    music.play();
-    update();
-};
-
-function update() {
-    ctx.clearRect(0,0,1024,576);
-    
-    // Ruch Gracza 1
-    if(keys.l) p1.x -= 8; if(keys.r) p1.x += 8;
-    p1.y += p1.vy; p1.vy += 1;
-    if(p1.y > 220) { p1.y = 220; p1.vy = 0; }
-    
-    // Ruch AI Gracza 2
-    if(p2.x > p1.x + 180) p2.x -= 3; else if(p2.x < p1.x - 180) p2.x += 3;
-    p2.y += p2.vy; p2.vy += 1;
-    if(p2.y > 220) { p2.y = 220; p2.vy = 0; }
-
-    // Rysowanie postaci
-    ctx.drawImage(imgCore, p1.x, p1.y, 220, 350);
-    ctx.drawImage(imgClassic, p2.x, p2.y, 220, 350);
-    
-    // Atak nutką
-    if(p1.atk) {
-        ctx.fillStyle = "#ffbb00";
-        ctx.font = "80px Arial";
-        ctx.fillText("♪", p1.x + 160, p1.y + 150);
-    }
-
-    if(p2.vibe > 0) requestAnimationFrame(update);
-    else {
-        ctx.fillStyle = "white"; ctx.font = "60px Arial"; ctx.textAlign = "center";
-        ctx.fillText("WYGRANA CORE!", 512, 288);
-    }
-}
-
-const bind = (id, act) => {
-    const b = document.getElementById(id);
-    b.ontouchstart = (e) => { e.preventDefault(); act(true); };
-    b.ontouchend = (e) => { e.preventDefault(); act(false); };
-};
-bind('btn-left', v => keys.l = v);
-bind('btn-right', v => keys.r = v);
-document.getElementById('btn-jump').ontouchstart = () => { if(p1.vy===0) p1.vy = -25; };
-document.getElementById('btn-attack').ontouchstart = () => { 
-    p1.atk = true;
-    if(Math.abs(p1.x - p2.x) < 250) {
-        p2.vibe -= 5;
-        document.getElementById('p2-vibe').style.width = p2.vibe + "%";
-    }
-    setTimeout(() => p1.atk = false, 200);
-};
-</script>
-</body>
-</html>
+            <div class="vibe-bar"><div id="playerVibe" class="vibe-fill"></div></div>
+            <div class="vibe-bar">
