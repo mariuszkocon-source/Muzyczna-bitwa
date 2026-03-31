@@ -3,86 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC BATTLE: QUICK TEST</title>
+    <title>TC BATTLE: FIX</title>
     <style>
-        * { user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
-        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
-        #wrapper { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; }
-        canvas { background: #050505; width: 100%; height: 70%; object-fit: contain; }
-        .ui { position: absolute; top: 20px; width: 100%; display: flex; justify-content: space-around; }
-        .hp-bg { width: 40%; height: 20px; background: #333; border: 2px solid #fff; }
-        .hp-fill { height: 100%; width: 100%; transition: 0.2s; background: #ffbb00; }
-        #controls { width: 100%; height: 30%; display: flex; justify-content: space-around; align-items: center; background: #111; }
-        .btn { width: 70px; height: 70px; background: #333; border: 3px solid #777; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; color: white; touch-action: none; }
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+        canvas { background: #111; flex-grow: 1; width: 100%; object-fit: contain; }
+        #controls { height: 150px; display: flex; justify-content: space-around; align-items: center; background: #222; }
+        .btn { width: 80px; height: 80px; background: #444; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; }
     </style>
 </head>
 <body>
 
-<div id="wrapper">
-    <div class="ui">
-        <div class="hp-bg"><div id="p1-hp" class="hp-fill"></div></div>
-        <div class="hp-bg"><div id="p2-hp" class="hp-fill" style="background: #00e1ff;"></div></div>
-    </div>
+<div id="game-container">
     <canvas id="gameCanvas"></canvas>
     <div id="controls">
-        <div class="btn" id="l">◀</div>
-        <div class="btn" id="r">▶</div>
-        <div class="btn" id="j" style="color:#00e1ff">↑</div>
-        <div class="btn" id="a" style="color:#ffbb00">♪</div>
+        <div class="btn" id="btn-l">◀</div>
+        <div class="btn" id="btn-r">▶</div>
+        <div class="btn" id="btn-j" style="color:#00e1ff">↑</div>
+        <div class="btn" id="btn-a" style="color:#ffbb00">♪</div>
     </div>
 </div>
-
-<audio id="bgMusic" loop><source src="narkorapcore.wav" type="audio/wav"></audio>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const music = document.getElementById('bgMusic');
-canvas.width = 1024; canvas.height = 576;
+canvas.width = 1024; 
+canvas.height = 576;
 
-// TWOJE PLIKI Z GITHUB
+// DOKŁADNE NAZWY Z TWOJEGO GITHUBA
 const imgIdle = new Image(); imgIdle.src = 'chud.jpg';
 const imgJump = new Image(); imgJump.src = 'jump.jpg';
 const imgPunch = new Image(); imgPunch.src = 'punch.jpg';
 
-let p1 = { x: 150, y: 300, vy: 0, hp: 100, state: 'idle' };
-let p2 = { x: 700, y: 300, hp: 100 };
+let p1 = { x: 100, y: 300, vy: 0, state: 'idle' };
 let keys = { l: false, r: false };
-
-// Start po kliknięciu w ekran
-window.onclick = () => { music.play(); };
 
 function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Ruch
-    if(keys.l) p1.x -= 8; if(keys.r) p1.x += 8;
-    p1.y += p1.vy; p1.vy += 1.2;
+    // Grawitacja i ruch
+    if(keys.l) p1.x -= 7;
+    if(keys.r) p1.x += 7;
+    p1.y += p1.vy;
+    p1.vy += 1;
     if(p1.y > 300) { p1.y = 300; p1.vy = 0; }
 
-    // Stan grafiki
+    // Wybór obrazka
     let currentImg = imgIdle;
-    if (p1.vy !== 0) currentImg = imgJump;
+    if (p1.vy < 0 || p1.vy > 0) currentImg = imgJump;
     if (p1.state === 'punch') currentImg = imgPunch;
 
-    // Rysowanie (p1 - Twoje nowe grafiki)
-    ctx.drawImage(currentImg, p1.x, p1.y, 200, 250);
-    
-    // Rysowanie p2 (tymczasowy kwadrat jako przeciwnik)
-    ctx.fillStyle = '#00e1ff';
-    ctx.fillRect(p2.x, p2.y, 150, 250);
+    // Rysowanie postaci
+    if(currentImg.complete) {
+        ctx.drawImage(currentImg, p1.x, p1.y, 250, 250);
+    } else {
+        // Czerwony kwadrat jeśli obrazek się nie wczytał
+        ctx.fillStyle = "red";
+        ctx.fillRect(p1.x, p1.y, 100, 100);
+    }
 
     requestAnimationFrame(loop);
 }
 
-// Sterowanie
-const setupBtn = (id, action) => {
+// Obsługa dotyku
+const input = (id, type) => {
     const el = document.getElementById(id);
     el.ontouchstart = (e) => {
         e.preventDefault();
-        if(action === 'jump' && p1.vy === 0) p1.vy = -25;
-        if(action === 'punch') {
+        if(type === 'l') keys.l = true;
+        if(type === 'r') keys.r = true;
+        if(type === 'j' && p1.vy === 0) p1.vy = -20;
+        if(type === 'a') {
             p1.state = 'punch';
-            if(Math.abs(p1.x - p2.x) < 200) {
-                p2.hp -= 5;
-                document.getElementById('p
+            setTimeout(() => p1.state = 'idle', 300);
+        }
+    };
+    el.ontouchend = () => { keys.l = false; keys.r = false; };
+};
+
+input('btn-l', 'l'); input('btn-r', 'r');
+input('btn-j', 'j'); input('btn-a', 'a');
+
+loop();
+</script>
+</body>
+</html>
