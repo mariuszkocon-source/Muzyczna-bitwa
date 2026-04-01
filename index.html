@@ -3,38 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TC BATTLE - FIXED</title>
+    <title>TC BATTLE - PRO COLLISION</title>
     <style>
         * { user-select: none; box-sizing: border-box; -webkit-touch-callout: none; }
         body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Ekrany */
         .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; z-index: 100; }
+        #start-screen { background: url('title.png') center/contain no-repeat; }
+        #select-screen { display:none; background: url('select_screen.png') center/contain no-repeat; }
+        
         #game-wrapper { display: none; flex-grow: 1; position: relative; flex-direction: column; }
         
-        .ui-top { display: flex; justify-content: space-between; padding: 10px; width: 100%; position: absolute; top: 0; }
-        .hp-bar { width: 40%; height: 20px; background: #333; border: 2px solid #fff; }
+        /* UI Waliki */
+        .ui-top { display: flex; justify-content: space-between; padding: 15px; width: 100%; position: absolute; top: 0; z-index: 10; }
+        .hp-bar { width: 42%; height: 25px; background: #333; border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
         .hp-fill { height: 100%; width: 100%; transition: width 0.2s; }
+        #timer { font-size: 40px; font-weight: bold; text-shadow: 2px 2px #000; min-width: 80px; text-align: center; }
         
         canvas { background: #050505; flex-grow: 1; width: 100%; object-fit: contain; }
         
-        #controls { height: 180px; background: #111; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 10px; }
-        .btn { background: #333; border: 3px solid #777; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; touch-action: none; }
-        .btn:active { background: #555; }
+        /* Sterowanie */
+        #controls { height: 160px; background: #111; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 15px; border-top: 2px solid #333; }
+        .btn { background: #222; border: 2px solid #555; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; touch-action: none; border-radius: 8px; }
+        .btn:active { background: #444; border-color: #fff; }
     </style>
 </head>
 <body>
 
-    <div id="start-screen" class="screen" style="background: url('title.png') center/contain no-repeat;">
-        <button onclick="showSelect()" style="margin-top: 50%; padding: 15px 40px; font-size: 24px; background: #ffbb00; border: none; font-weight: bold;">START</button>
+    <div id="start-screen" class="screen">
+        <button onclick="showSelect()" style="margin-top: 60%; padding: 15px 50px; font-size: 28px; background: #ffbb00; border: none; font-weight: bold; border-radius: 10px; cursor: pointer;">START</button>
     </div>
 
-    <div id="select-screen" class="screen" style="display:none;">
-        <h1>WYBIERZ WOJOWNIKA</h1>
-        <div style="display:flex; gap: 20px;">
-            <div onclick="initGame('core')" style="cursor:pointer; text-align:center;">
-                <img src="face_core.png" width="120"><p>CORE</p>
+    <div id="select-screen" class="screen">
+        <h1 style="color:#ffbb00; text-shadow: 2px 2px #000; margin-bottom: 40px;">WYBIERZ WOJOWNIKA</h1>
+        <div style="display:flex; gap: 30px;">
+            <div onclick="initGame('core')" style="cursor:pointer; text-align:center; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px;">
+                <img src="face_core.png" width="140" style="border: 3px solid #ff4400;"><p>CORE</p>
             </div>
-            <div onclick="initGame('classic')" style="cursor:pointer; text-align:center;">
-                <img src="face_classic.png" width="120"><p>CLASSIC</p>
+            <div onclick="initGame('classic')" style="cursor:pointer; text-align:center; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px;">
+                <img src="face_classic.png" width="140" style="border: 3px solid #00e1ff;"><p>CLASSIC</p>
             </div>
         </div>
     </div>
@@ -42,7 +50,7 @@
     <div id="game-wrapper">
         <div class="ui-top">
             <div class="hp-bar"><div id="hp-left" class="hp-fill" style="background:#ffbb00;"></div></div>
-            <div id="timer" style="font-size:30px;">30</div>
+            <div id="timer">30</div>
             <div class="hp-bar"><div id="hp-right" class="hp-fill" style="background:#00e1ff;"></div></div>
         </div>
         <canvas id="gameCanvas"></canvas>
@@ -75,17 +83,27 @@ async function initGame(choice) {
     document.getElementById('select-screen').style.display = 'none';
     document.getElementById('game-wrapper').style.display = 'flex';
 
+    // Statystyki
     const pType = choice === 'core' ? {hp:150, s:'_c.jpg'} : {hp:170, s:'.jpg'};
     const eType = choice === 'core' ? {hp:170, s:'.jpg'} : {hp:150, s:'_c.jpg'};
 
-    player = { x: 200, y: 300, hp: pType.hp, max: pType.hp, suffix: pType.s, state: 'idle', vy: 0 };
-    enemy = { x: 700, y: 300, hp: eType.hp, max: eType.hp, suffix: eType.s, state: 'idle', vy: 0, aiTimer: 0 };
+    // Inicjalizacja pozycji (Core lewa, Classic prawa)
+    player = { x: 200, y: 300, hp: pType.hp, max: pType.hp, suffix: pType.s, state: 'idle', vy: 0, width: 220 };
+    enemy = { x: 600, y: 300, hp: eType.hp, max: eType.hp, suffix: eType.s, state: 'idle', vy: 0, width: 220, aiTimer: 0 };
 
     await Promise.all([loadSprites(player), loadSprites(enemy)]);
     
     document.getElementById(choice === 'core' ? 'mus-core' : 'mus-classic').play();
     gameActive = true;
-    setInterval(() => { if(timer > 0 && gameActive) timer--; document.getElementById('timer').innerText = timer; }, 1000);
+    
+    // Licznik czasu
+    const clock = setInterval(() => { 
+        if(!gameActive) { clearInterval(clock); return; }
+        if(timer > 0) timer--; 
+        document.getElementById('timer').innerText = timer; 
+        if(timer <= 0) endGame("KONIEC CZASU!");
+    }, 1000);
+
     loop();
 }
 
@@ -97,7 +115,7 @@ function loadSprites(char) {
             const img = new Image();
             img.src = pose + char.suffix;
             img.onload = () => { char.imgs[pose] = img; resolve(); };
-            img.onerror = () => { console.error("Błąd pliku:", img.src); resolve(); };
+            img.onerror = () => { console.warn("Brak pliku:", img.src); resolve(); };
         });
     });
     return Promise.all(promises);
@@ -107,25 +125,59 @@ function loop() {
     if(!gameActive) return;
     ctx.clearRect(0,0,1024,576);
 
-    // Gracz
-    if(keys.l) { player.x -= 5; player.state = 'walk'; }
-    else if(keys.r) { player.x += 5; player.state = 'walk'; }
+    // Zapamiętaj pozycję przed ruchem (do kolizji)
+    let oldPX = player.x;
+    let oldEX = enemy.x;
+
+    // Logika Ruchu Gracza
+    if(keys.l) { player.x -= 7; player.state = 'walk'; }
+    else if(keys.r) { player.x += 7; player.state = 'walk'; }
     else if(player.state === 'walk') player.state = 'idle';
+
+    // Skok Gracza
+    player.y += player.vy; player.vy += 1.8;
+    if(player.y > 300) { player.y = 300; player.vy = 0; }
+    if(player.y < 300) player.state = 'jump';
 
     // AI Przeciwnika
     enemy.aiTimer++;
-    if(Math.abs(enemy.x - player.x) > 150) {
-        enemy.x += (player.x > enemy.x ? 3 : -3);
+    let dist = Math.abs((enemy.x + 110) - (player.x + 110));
+    
+    if(dist > 180) {
+        enemy.x += (player.x > enemy.x ? 4 : -4);
         enemy.state = 'walk';
-    } else if(enemy.aiTimer % 60 === 0) {
-        enemy.state = 'punch_fire1';
-        if(player.state !== 'crouch') player.hp -= 10;
-        setTimeout(() => enemy.state = 'idle', 300);
+    } else {
+        if(enemy.aiTimer % 50 === 0) {
+            enemy.state = 'punch_fire1';
+            if(player.state !== 'crouch') player.hp -= 10;
+            updateUI();
+            setTimeout(() => { if(gameActive) enemy.state = 'idle'; }, 300);
+        } else {
+            enemy.state = 'idle';
+        }
     }
+
+    // --- SYSTEM KOLIZJI (Blokada przechodzenia) ---
+    let minDistance = 160; 
+    let currentDist = Math.abs(player.x - enemy.x);
+    
+    if(currentDist < minDistance) {
+        // Jeśli postacie zderzą się, przywróć ich poprzednie pozycje X
+        player.x = oldPX;
+        enemy.x = oldEX;
+    }
+
+    // Blokada krawędzi ekranu
+    if(player.x < 0) player.x = 0;
+    if(player.x > 800) player.x = 800;
+    if(enemy.x < 0) enemy.x = 0;
+    if(enemy.x > 800) enemy.x = 800;
 
     draw(player);
     draw(enemy);
-    updateUI();
+    
+    if(player.hp <= 0 || enemy.hp <= 0) endGame(player.hp <= 0 ? "CLASSIC WYGRYWA!" : "CORE WYGRYWA!");
+
     requestAnimationFrame(loop);
 }
 
@@ -139,19 +191,17 @@ function updateUI() {
     document.getElementById('hp-right').style.width = (enemy.hp/enemy.max*100) + "%";
 }
 
-// STEROWANIE
-const setup = (id, k) => {
-    const b = document.getElementById(id);
-    b.onpointerdown = () => { if(k==='j' && player.y>=300) player.vy=-25; if(k==='b') player.state='crouch'; if(k==='l' || k==='r') keys[k]=true; };
-    b.onpointerup = () => { if(k==='l' || k==='r') keys[k]=false; if(k==='b') player.state='idle'; };
-};
-setup('l','l'); setup('r','r'); setup('j','j'); setup('b','b');
+function endGame(msg) {
+    gameActive = false;
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(0,0,1024,576);
+    ctx.fillStyle = "#ffbb00"; 
+    ctx.font = "bold 70px Arial"; 
+    ctx.textAlign = "center";
+    ctx.fillText(msg, 512, 288);
+}
 
-document.getElementById('a').onpointerdown = () => {
-    player.state = Math.abs(player.x - enemy.x) < 200 ? 'punch_fire1' : 'punch1';
-    if(player.state === 'punch_fire1') enemy.hp -= 15;
-    setTimeout(() => player.state='idle', 200);
-};
-</script>
-</body>
-</html>
+// Sterowanie Dotykowe
+const handle = (id, action) => {
+    const el = document.getElementById(id);
+    el.onpointerdown = (
